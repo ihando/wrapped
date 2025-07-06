@@ -68,7 +68,32 @@ def callback():
         return jsonify(token_info), 400
 
     session['access_token'] = token_info['access_token']
-    return redirect('/top')
+    return redirect('/wrapped')
+
+@app.route('/wrapped')
+def wrapped():
+    access_token = session.get('access_token')
+    if not access_token:
+        return redirect('/login')
+
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    response = requests.get(
+        'https://api.spotify.com/v1/me/top/artists?limit=4&time_range=long_term',
+        headers=headers
+    )
+
+    if response.status_code != 200:
+        return jsonify({'error': 'Failed to fetch top artists'}), response.status_code
+
+    #gets and returns top 4 artists and puts it on the page
+    data = response.json()
+    artists = data.get('items', [])
+    top_artists = [{'name': artist['name']} for artist in artists[:4]]
+
+    return jsonify({'top_artists': top_artists})
 
 @app.route('/top')
 def get_top_tracks():
@@ -121,7 +146,36 @@ def get_top_artists():
 
     return jsonify({'message': 'Top 50 artists printed to console.'})
 
+@app.route('/api/top-artists')
+def get_top_artists_api():
+    access_token = session.get('access_token')
+    if not access_token:
+        return redirect('/login')
 
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    response = requests.get(
+        'https://api.spotify.com/v1/me/top/artists?limit=50&time_range=long_term',
+        headers=headers
+    )
+
+    if response.status_code != 200:
+        return jsonify({
+            'error': 'Failed to fetch top artists',
+            'details': response.json()
+        }), response.status_code
+
+    data = response.json()
+    artists = data.get('items', [])
+
+    print("\n🎵 Your Top 50 Spotify Artists (long_term):")
+    print("------------------------------------------")
+    for i, artist in enumerate(artists, start=1):
+        print(f"{i}. {artist['name']}")
+
+    return jsonify({'message': 'Top 50 artists printed to console.'})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
