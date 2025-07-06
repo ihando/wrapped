@@ -106,16 +106,21 @@ def get_top_artists():
     )
 
     if response.status_code != 200:
-        print("Failed to fetch top artists")
-        return jsonify({'error': 'Failed to fetch top artists'}), response.status_code
+        return jsonify({
+            'error': 'Failed to fetch top artists',
+            'details': response.json()
+        }), response.status_code
 
     data = response.json()
+    artists = data.get('items', [])
 
-    print("\n🎵 Top 50 Artists:\n-------------------")
-    for i, artist in enumerate(data['items'], start=1):
+    print("\n🎵 Your Top 50 Spotify Artists (long_term):")
+    print("------------------------------------------")
+    for i, artist in enumerate(artists, start=1):
         print(f"{i}. {artist['name']}")
 
-    return jsonify({'message': 'Top 50 artist names printed in console.'})
+    return jsonify({'message': 'Top 50 artists printed to console.'})
+
 
 
 if __name__ == '__main__':
