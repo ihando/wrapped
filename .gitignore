@@ -57,3 +57,8 @@ dist/
 # ========== System Files ==========
 Thumbs.db
 ehthumbs.db
+
+flask_session/
+   instance/
+   *.sqlite3
+   *.db
