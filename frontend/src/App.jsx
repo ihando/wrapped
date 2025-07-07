@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function LoginPage() {
   const handleLogin = () => {
-    window.location.href = "http://localhost:5001/login";
+    window.location.href = "http://127.0.0.1:5001/login";
   };
 
   return (
@@ -40,7 +40,7 @@ function WrappedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/wrapped", {
+    fetch("http://127.0.0.1:5001/wrapped", {
       credentials: "include",
     })
       .then((res) => {

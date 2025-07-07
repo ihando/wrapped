@@ -4,7 +4,27 @@ import os
 from dotenv import load_dotenv
 from urllib.parse import urlencode
 from pathlib import Path
+from flask_cors import CORS
+from flask_session import Session
 
+app = Flask(__name__)
+
+app.config["SESSION_TYPE"] = "filesystem"
+Session(app)
+
+app.secret_key = "tempsecretkey"
+app.config.update(
+      SESSION_COOKIE_DOMAIN="127.0.0.1",
+      SESSION_COOKIE_SAMESITE="Lax",
+      SESSION_COOKIE_SECURE=False
+  )
+CORS(
+    app,
+    supports_credentials=True,
+    origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "OPTIONS"]
+)
 # Load environment variables
 load_dotenv(dotenv_path=Path('.') / '.env')
 
@@ -15,12 +35,16 @@ REDIRECT_URI = os.getenv("REDIRECT_URI")
 print("Client ID:", SPOTIFY_CLIENT_ID)
 print("Redirect URI:", REDIRECT_URI)
 
-app = Flask(__name__)
-app.secret_key = os.urandom(24)
 
 SCOPE = "user-top-read user-read-recently-played"
 AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
+
+
+
+@app.route('/test-cors')
+def test_cors():
+    return 'CORS is working!'
 
 @app.route('/')
 def index():
@@ -59,8 +83,13 @@ def callback():
         'client_secret': SPOTIFY_CLIENT_SECRET
     }
 
-    auth_header = (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET)
-    response = requests.post(TOKEN_URL, data=payload, auth=auth_header)
+    payload = {
+    'grant_type': 'authorization_code',
+    'code': code,
+    'redirect_uri': REDIRECT_URI,
+    }
+    response = requests.post(TOKEN_URL, data=payload, auth=(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET))
+
     token_info = response.json()
     print("Token info:", token_info)
 
@@ -68,13 +97,14 @@ def callback():
         return jsonify(token_info), 400
 
     session['access_token'] = token_info['access_token']
-    return redirect('/wrapped')
+    print("Stored in session:", session.get('access_token'))
+    return redirect('http://127.0.0.1:5173/wrapped')
 
 @app.route('/wrapped')
 def wrapped():
     access_token = session.get('access_token')
     if not access_token:
-        return redirect('/login')
+        return jsonify({'error': 'Not authenticated'}), 401
 
     headers = {
         'Authorization': f'Bearer {access_token}'
